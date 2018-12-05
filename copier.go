@@ -1,7 +1,6 @@
 package copier
 
 import (
-	"database/sql"
 	"errors"
 	"reflect"
 )
@@ -25,10 +24,10 @@ func Copy(toValue interface{}, fromValue interface{}) (err error) {
 	}
 
 	// Just set it if possible to assign
-	if from.Type().AssignableTo(to.Type()) {
-		to.Set(from)
-		return
-	}
+	//if from.Type().AssignableTo(to.Type()) {
+	//	to.Set(from)
+	//	return
+	//}
 
 	fromType := indirectType(from.Type())
 	toType := indirectType(to.Type())
@@ -155,26 +154,44 @@ func indirectType(reflectType reflect.Type) reflect.Type {
 	return reflectType
 }
 
+func IsZero(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	}
+	return false
+}
+
 func set(to, from reflect.Value) bool {
 	if from.IsValid() {
 		if to.Kind() == reflect.Ptr {
-			//set `to` to nil if from is nil
+			//don't set `to` to nil if from is nil
 			if from.Kind() == reflect.Ptr && from.IsNil() {
-				to.Set(reflect.Zero(to.Type()))
+				//to.Set(reflect.Zero(to.Type()))
 				return true
 			} else if to.IsNil() {
 				to.Set(reflect.New(to.Type().Elem()))
 			}
 			to = to.Elem()
 		}
-
-		if from.Type().ConvertibleTo(to.Type()) {
+		if from.Type().ConvertibleTo(to.Type()) && !IsZero(from) {
 			to.Set(from.Convert(to.Type()))
-		} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
-			err := scanner.Scan(from.Interface())
-			if err != nil {
-				return false
-			}
+			//} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
+			//	err := scanner.Scan(from.Interface())
+			//	if err != nil {
+			//		return false
+			//	}
+			//}
 		} else if from.Kind() == reflect.Ptr {
 			return set(to, from.Elem())
 		} else {

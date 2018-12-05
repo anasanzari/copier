@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jinzhu/copier"
+	"github.com/anasanzari/copier"
 )
 
 type User struct {
@@ -253,5 +253,34 @@ func TestScanner(t *testing.T) {
 
 	if s.V.V != s2.V.V {
 		t.Errorf("Field V should be copied")
+	}
+}
+
+func TestNonNilCopy(t *testing.T) {
+	type V struct {
+		Value string
+	}
+	type S struct {
+		Version int
+		V []V
+	}
+
+	source := S{}
+	source.V = append(source.V, V{
+		Value: "Test",
+	})
+
+	dest := S{
+		Version: 1,
+	}
+	err := copier.Copy(&dest, &source)
+	if err != nil {
+		t.Error("Should not raise error")
+	}
+	if len(dest.V) == 0 || dest.V[0].Value != "Test" {
+		t.Error("Copy failed.")
+	}
+	if dest.Version != 1 {
+		t.Error("Version failed.")
 	}
 }
