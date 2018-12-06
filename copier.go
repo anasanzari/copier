@@ -3,6 +3,7 @@ package copier
 import (
 	"errors"
 	"reflect"
+	"github.com/Sirupsen/logrus"
 )
 
 // Copy copy things
@@ -184,7 +185,12 @@ func set(to, from reflect.Value) bool {
 			}
 			to = to.Elem()
 		}
-		if from.Type().ConvertibleTo(to.Type()) && !IsZero(from) {
+		if from.Kind() == reflect.Struct {
+			err := Copy(to.Addr().Interface(), from.Addr().Interface()) // recurse inner struct fields
+			if err != nil {
+				logrus.Error(err)
+			}
+		} else if from.Type().ConvertibleTo(to.Type()) && !IsZero(from) {
 			to.Set(from.Convert(to.Type()))
 			//} else if scanner, ok := to.Addr().Interface().(sql.Scanner); ok {
 			//	err := scanner.Scan(from.Interface())

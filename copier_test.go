@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/anasanzari/copier"
+	"github.com/stretchr/testify/assert"
 )
 
 type User struct {
@@ -283,4 +284,102 @@ func TestNonNilCopy(t *testing.T) {
 	if dest.Version != 1 {
 		t.Error("Version failed.")
 	}
+}
+
+func TestAllPossibleTypes(t *testing.T)  {
+	type Str struct {
+		V int
+	}
+	type V struct {
+		Float float64
+		Int int64
+		IntPointer *int
+		String string
+		StringPointer *string
+		IntArray []int64
+		StringArray []string
+		StrValue Str
+		StrPointer *Str
+	}
+	dest := V{}
+	dest.Float = 100
+	dest.Int = 1
+	v := 10
+	dest.IntPointer = &v
+	dest.String = "Man"
+	s := "Wow"
+	dest.StringPointer = &s
+	dest.IntArray = []int64{1, 2, 3}
+	dest.StringArray = []string{"a", "b", "c"}
+	dest.StrValue = Str{ V: 10 }
+	dest.StrPointer = &Str{ V: 11 }
+
+	destCopy := dest
+
+
+	source := V{}
+	err := copier.Copy(&dest, &source)
+	if err != nil {
+		t.Error("Should not raise error")
+	}
+
+	// test a == b
+	equalityTest := func(a V, b V) {
+		assert.Equal(t, a.Float, b.Float)
+		assert.Equal(t, a.Int, b.Int)
+		assert.Equal(t, *a.IntPointer, *b.IntPointer)
+		assert.Equal(t, a.String, b.String)
+		assert.Equal(t, *a.StringPointer, *b.StringPointer, )
+		assert.Equal(t, a.IntArray, b.IntArray)
+		assert.Equal(t, a.StringArray, b.StringArray)
+		assert.Equal(t, a.StrValue, b.StrValue)
+		assert.Equal(t, *a.StrPointer, *b.StrPointer)
+	}
+
+	// now this copy shouldn't copy anything.
+	equalityTest(destCopy, dest)
+
+	source.Float = 200
+	copier.Copy(&dest, &source)
+	destCopy.Float = 200
+	equalityTest(destCopy, dest)
+
+	source.Int = 110
+	copier.Copy(&dest, &source)
+	destCopy.Int = 110
+	equalityTest(destCopy, dest)
+
+	vp := 99
+	source.IntPointer = &vp
+	copier.Copy(&dest, &source)
+	cp := 99
+	destCopy.IntPointer = &cp
+	equalityTest(destCopy, dest)
+
+	source.String = "Check"
+	copier.Copy(&dest, &source)
+	destCopy.String = "Check"
+	equalityTest(destCopy, dest)
+
+	source.IntArray = []int64{4, 5, 6}
+	copier.Copy(&dest, &source)
+	destCopy.IntArray = []int64{4, 5, 6}
+	equalityTest(destCopy, dest)
+
+	source.StringArray = []string{"d", "e", "f"}
+	copier.Copy(&dest, &source)
+	destCopy.StringArray = []string{"d", "e", "f"}
+	equalityTest(destCopy, dest)
+
+
+	//source.StrValue = Str{ V: 89 }
+	//copier.Copy(&dest, &source)
+	//destCopy.StrValue = Str{ V: 89 }
+	//equalityTest(destCopy, dest)
+
+	source.StrPointer = &Str{ V: 89 }
+	copier.Copy(&dest, &source)
+	destCopy.StrPointer = &Str{ V: 89 }
+	equalityTest(destCopy, dest)
+
 }
